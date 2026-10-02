@@ -1,0 +1,10 @@
+dist
+node_modules
+src-tauri/target
+src-tauri/gen
+package-lock.json
+pnpm-lock.yaml
+*.log
+.env
+.env.local
+.env.*.local
