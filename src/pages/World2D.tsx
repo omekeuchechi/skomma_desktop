@@ -1,10 +1,18 @@
 import { useEffect, useRef } from 'react';
 import Phaser from 'phaser';
+import { useNavigate } from 'react-router-dom';
+import { loadPlotAssets, createDoor, checkDoorCollision } from '@world_one/terrain/plot_1/scripts/services/index';
+import { createPlot } from '@world_one/terrain/plot_1/scripts/plots_scripts/index';
+import type { PlotConfig } from '@world_one/terrain/plot_1/scripts/types/index';
+import { useWorldPositionStore } from '@stores/worldPositionStore';
 
 export default function World2D() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const webcamInitializedRef = useRef(false);
+  const navigate = useNavigate();
+  const { outdoorPosition, setOutdoorPosition, setCurrentScene } = useWorldPositionStore();
 
   useEffect(() => {
     const container = containerRef.current;
@@ -21,15 +29,20 @@ export default function World2D() {
       height: 10000,
       backgroundColor: '#000000',
       audio: {
-        disableWebAudio: true,
+        disableWebAudio: false, // Enable audio for door sounds
       },
       scene: {
+        preload: function(this: Phaser.Scene) {
+          // Load plot assets
+          loadPlotAssets(this);
+        },
         create: function(this: Phaser.Scene) {
           // Create green ground
           const greenGround = this.add.rectangle(5000, 5000, 10000, 10000, 0x218727);
           greenGround.setOrigin(0.5, 0.5);
+          greenGround.setDepth(0); // Set ground to lowest depth
 
-          const passportSize = 200;
+          const passportSize = 100;
           const margin = 50;
           
           // Calculate world boundaries (leaving margin for passport)
@@ -38,13 +51,54 @@ export default function World2D() {
           const minY = margin + passportSize / 2;
           const maxY = 10000 - margin - passportSize / 2;
 
-          // Create passport container at center
-          const passport = this.add.container(5000, 5000);
+          // Create passport container at stored position
+          const passport = this.add.container(outdoorPosition.x, outdoorPosition.y);
+          passport.setDepth(1000); // Set passport to highest depth so it's always on top
           
-          // Create passport background (200px x 200px)
+          // Create passport background (100px x 100px)
           const passportBg = this.add.rectangle(0, 0, passportSize, passportSize, 0x333333);
           passportBg.setStrokeStyle(2, 0x666666);
           passport.add(passportBg);
+
+          // Create a sample plot with building
+          const plotConfig: PlotConfig = {
+            position: { x: 5500, y: 5000 },
+            width: 800,
+            height: 800,
+            shapes: [],
+            shapesPositions: [],
+            buildingRoofs: [
+              {
+                image: 'duplex_roof',
+                position: { x: 0, y: 0 },
+                width: 400,
+                height: 300,
+                hasDoor: true,
+                doorPosition: { x: 0, y: 150 },
+                doorImage: '', // No door image yet
+                sceneName: 'duplex_indoor'
+              }
+            ],
+            objCollision: [true],
+            objSounds: []
+          };
+
+          const plot = createPlot(this, plotConfig);
+          plot.setDepth(10); // Set plot depth above ground but below passport
+          
+          // Add door to the plot container
+          const door = createDoor(this, {
+            position: { x: 5500, y: 5150 },
+            width: 60,
+            height: 80,
+            sceneName: 'duplex_indoor',
+            soundKey: 'opening_door'
+          });
+          door.setDepth(20); // Door above plot
+
+          // Store references for door collision
+          (window as { passport?: Phaser.GameObjects.Container; door?: Phaser.GameObjects.Rectangle }).passport = passport;
+          (window as { passport?: Phaser.GameObjects.Container; door?: Phaser.GameObjects.Rectangle }).door = door;
 
           // Movement settings
           const speed = 20;
@@ -106,6 +160,20 @@ export default function World2D() {
               passport.x = newX;
               passport.y = newY;
 
+              // Save position to store
+              setOutdoorPosition({ x: newX, y: newY });
+
+              // Check door collision
+              const doorRef = (window as { door?: Phaser.GameObjects.Rectangle }).door;
+              if (doorRef) {
+                checkDoorCollision(passport, doorRef, this, (sceneName) => {
+                  // Save current scene state
+                  setCurrentScene('indoor');
+                  // Navigate to inner building scene
+                  navigate(`/inner-building/${sceneName}`);
+                });
+              }
+
               // Update scroll position to follow passport
               const scrollCont = (window as { scrollContainer?: HTMLDivElement }).scrollContainer;
               if (scrollCont) {
@@ -154,10 +222,13 @@ export default function World2D() {
 
     const game = new Phaser.Game(config);
 
-    // Initialize webcam
+    // Initialize webcam (only once)
     const initWebcam = async () => {
+      if (webcamInitializedRef.current) return;
+      webcamInitializedRef.current = true;
+
       try {
-        const passportSize = 200;
+        const passportSize = 100;
         const stream = await navigator.mediaDevices.getUserMedia({ 
           video: { width: 1280, height: 720, facingMode: 'user' } 
         });
@@ -199,7 +270,7 @@ export default function World2D() {
       }
       delete (window as { scrollContainer?: HTMLDivElement }).scrollContainer;
     };
-  }, []);
+  }, [navigate, outdoorPosition, setOutdoorPosition, setCurrentScene]);
 
   return (
     <div 

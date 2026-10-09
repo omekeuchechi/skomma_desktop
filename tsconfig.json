@@ -34,7 +34,8 @@
       "@network/*": ["src/network/*"],
       "@contexts/*": ["src/contexts/*"],
       "@styles/*": ["src/styles/*"],
-      "@ui/*": ["src/ui/*"]
+      "@ui/*": ["src/ui/*"],
+      "@world_one/*": ["src/world_one/*"]
     }
   },
   "include": ["src", "vite.config.ts"]

@@ -21,6 +21,7 @@ const alias = {
   '@contexts': path.resolve(import.meta.dirname, 'src/contexts'),
   '@styles': path.resolve(import.meta.dirname, 'src/styles'),
   '@ui': path.resolve(import.meta.dirname, 'src/ui'),
+  '@world_one': path.resolve(import.meta.dirname, 'src/world_one'),
 };
 
 export default defineConfig({
