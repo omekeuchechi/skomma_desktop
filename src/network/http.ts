@@ -1,5 +1,6 @@
 import axios, { AxiosError } from 'axios';
 import { config } from '@config/index';
+import { AUTH_TOKEN_KEY, useAuthStore } from '@stores/authStore';
 import type { ApiError } from '@types';
 
 const http = axios.create({
@@ -11,7 +12,7 @@ const http = axios.create({
 });
 
 http.interceptors.request.use((request) => {
-  const token = localStorage.getItem('skomma_access_token');
+  const token = localStorage.getItem(AUTH_TOKEN_KEY);
   if (token) request.headers.Authorization = `Bearer ${token}`;
   return request;
 });
@@ -21,8 +22,8 @@ http.interceptors.response.use(
   (error: AxiosError<ApiError>) => {
     const status = error.response?.status ?? 0;
     if (status === 401) {
-      localStorage.removeItem('skomma_access_token');
-      localStorage.removeItem('skomma_refresh_token');
+      // Reset persisted tokens and in-memory auth state so the UI logs out.
+      useAuthStore.getState().logout();
     }
     return Promise.reject(error);
   },

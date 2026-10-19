@@ -11,8 +11,12 @@ export default function InnerBuildingScene() {
   const containerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { sceneName } = useParams<{ sceneName: string }>();
-  const { setCurrentScene } = useWorldPositionStore();
-  const [passportPosition, setPassportPosition] = useState({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+  const { setCurrentScene, doorPosition, setOutdoorPosition } = useWorldPositionStore();
+  const [passportPosition, setPassportPosition] = useState({ 
+    x: window.innerWidth / 2, 
+    y: window.innerHeight / 2 
+  });
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     const container = containerRef.current;
@@ -36,20 +40,33 @@ export default function InnerBuildingScene() {
         ],
         background: '#ffffff',
         exitDoor: {
-          position: { x: window.innerWidth - 40, y: window.innerHeight / 2 },
-          width: 60,
-          height: 100
+          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+          width: 150,
+          height: 20
         }
       },
-      small_building_indoor: {
-        sceneName: 'small_building_indoor',
+      duplex_indoor2: {
+        sceneName: 'duplex_indoor2',
+        width: window.innerWidth,
+        height: window.innerHeight,
+        floorTexture: '',
+        objects: [],
+        background: '#ffffff',
+        exitDoor: {
+          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+          width: 150,
+          height: 20
+        }
+      },
+      small_building_indoor1: {
+        sceneName: 'small_building_indoor1',
         width: window.innerWidth,
         height: window.innerHeight,
         floorTexture: 'tiles',
         objects: [
           {
             image: 'table',
-            position: { x: window.innerWidth / 2 - 150, y: window.innerHeight / 2 },
+            position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
             width: 200,
             height: 120,
             collision: true
@@ -57,9 +74,30 @@ export default function InnerBuildingScene() {
         ],
         background: '#ffffff',
         exitDoor: {
-          position: { x: window.innerWidth - 40, y: window.innerHeight / 2 },
-          width: 60,
-          height: 100
+          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+          width: 150,
+          height: 20
+        }
+      },
+      small_building_indoor2: {
+        sceneName: 'small_building_indoor2',
+        width: window.innerWidth,
+        height: window.innerHeight,
+        floorTexture: 'tiles',
+        objects: [
+          {
+            image: 'table',
+            position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+            width: 200,
+            height: 120,
+            collision: true
+          }
+        ],
+        background: '#ffffff',
+        exitDoor: {
+          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+          width: 150,
+          height: 20
         }
       },
     };
@@ -103,7 +141,11 @@ export default function InnerBuildingScene() {
 
           // Add passport for indoor scene (invisible, used for position tracking)
           const passportSize = 100;
-          const passport = this.add.container(config.width / 2, config.height / 2);
+          // Position passport 50px to the left of the exit door
+          // Exit door is at config.width - 75, so passport should be at config.width - 125
+          const startX = config.width - 125;
+          const startY = config.height / 2;
+          const passport = this.add.container(startX, startY);
           passport.setDepth(1000);
           
           // Store passport reference globally
@@ -189,8 +231,29 @@ export default function InnerBuildingScene() {
               if (exitDoorRef) {
                 const doorBounds = exitDoorRef.getBounds();
                 if (Phaser.Geom.Rectangle.Contains(doorBounds, passport.x, passport.y)) {
+                  // Play door sound
+                  try {
+                    this.sound.play('opening_door', { volume: 0.5 });
+                  } catch (error) {
+                    console.log('Sound play failed:', error);
+                  }
+                  
+                  // Show loading overlay
+                  setIsLoading(true);
+                  
                   setCurrentScene('outdoor');
-                  navigate('/world');
+                  // Return in front of the building (position saved on entry)
+                  if (doorPosition) {
+                    setOutdoorPosition({
+                      x: doorPosition.x,
+                      y: doorPosition.y
+                    });
+                  }
+                  
+                  // Navigate after short delay
+                  setTimeout(() => {
+                    navigate('/world');
+                  }, 500);
                 }
               }
 
@@ -216,7 +279,7 @@ export default function InnerBuildingScene() {
     return () => {
       game.destroy(true);
     };
-  }, [sceneName, navigate, setCurrentScene]);
+  }, [sceneName, navigate, setCurrentScene, doorPosition, setOutdoorPosition]);
 
   // Listen for passport position updates from Phaser
   useEffect(() => {
@@ -238,8 +301,12 @@ export default function InnerBuildingScene() {
         x={passportPosition.x - 50}
         y={passportPosition.y - 50}
         size={100}
-        displayName="John Doe"
       />
+      {isLoading && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="text-white text-2xl">Loading...</div>
+        </div>
+      )}
     </div>
   );
 }

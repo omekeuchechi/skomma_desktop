@@ -25,6 +25,7 @@ export const AVAILABLE_IMAGES = {
  */
 export const AVAILABLE_SOUNDS = {
   opening_door: 'opening_door.mp3',
+  wall_hit: 'wall_hit.mp3',
 };
 
 /**

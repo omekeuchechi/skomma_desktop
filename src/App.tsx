@@ -12,7 +12,7 @@ import { Settings } from '@pages/Settings';
 import { Chat } from '@pages/Chat';
 import { WorldLoading } from '@pages/WorldLoading';
 import World2D from '@pages/World2D';
-import InnerBuildingScene from '@/world_one/inner_building_scene';
+import InnerBuilding from '@pages/InnerBuilding';
 import { ProtectedRoute } from '@components/ProtectedRoute';
 
 export default function App() {
@@ -32,7 +32,7 @@ export default function App() {
         <Route path="/world/loading" element={<WorldLoading />} />
       </Route>
       <Route path="/world" element={<ProtectedRoute><World2D /></ProtectedRoute>} />
-      <Route path="/inner-building/:sceneName" element={<ProtectedRoute><InnerBuildingScene /></ProtectedRoute>} />
+      <Route path="/inner-building/:sceneName" element={<ProtectedRoute><InnerBuilding /></ProtectedRoute>} />
       <Route path="*" element={<Navigate to="/home" replace />} />
     </Routes>
   );

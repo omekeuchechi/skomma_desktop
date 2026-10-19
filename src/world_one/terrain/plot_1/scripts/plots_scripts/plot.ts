@@ -114,14 +114,16 @@ function createBuilding(
   buildingContainer.add(roof);
 
   // Add door if specified
-  if (hasDoor && doorPosition && doorImage) {
-    const door = scene.add.image(doorPosition.x, doorPosition.y, doorImage);
-    door.setOrigin(0.5, 0.5);
-    buildingContainer.add(door);
+  if (hasDoor && doorPosition) {
+    if (doorImage) {
+      const door = scene.add.image(doorPosition.x, doorPosition.y, doorImage);
+      door.setOrigin(0.5, 0.5);
+      buildingContainer.add(door);
+    }
 
-    // Store door position for collision detection
+    // Store door position for collision detection (even without door image)
     buildingContainer.setData('doorPosition', doorPosition);
-    buildingContainer.setData('doorImage', doorImage);
+    buildingContainer.setData('doorImage', doorImage || '');
     buildingContainer.setData('sceneName', sceneName || '');
   }
 

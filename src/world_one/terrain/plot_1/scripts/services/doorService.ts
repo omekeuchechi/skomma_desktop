@@ -44,7 +44,7 @@ export function checkDoorCollision(
   passport: Phaser.GameObjects.Container,
   door: Phaser.GameObjects.Rectangle,
   scene: Phaser.Scene,
-  onEnterScene: (sceneName: string) => void
+  onEnterScene: (sceneName: string, doorPosition?: { x: number; y: number }) => void
 ): boolean {
   const passportBounds = passport.getBounds();
   const doorBounds = door.getBounds();
@@ -83,7 +83,7 @@ export function checkDoorCollision(
     // Load indoor scene
     const sceneName = door.getData('sceneName');
     if (sceneName) {
-      onEnterScene(sceneName);
+      onEnterScene(sceneName, { x: door.x, y: door.y });
     }
 
     return true;

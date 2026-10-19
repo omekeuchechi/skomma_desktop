@@ -9,46 +9,57 @@ interface PassportWithModeProps {
 }
 
 export default function PassportWithMode({ x, y, size, userName, displayName }: PassportWithModeProps) {
-  const [mode, setMode] = useState<'video' | 'image'>('video');
+  const actualDisplayName = displayName || userName;
+  const [mode, setMode] = useState<'video' | 'image'>('image');
   const [showDropdown, setShowDropdown] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const webcamInitializedRef = useRef(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [webcamError, setWebcamError] = useState(false);
 
-  // Initialize webcam
+  // Acquire the webcam stream while in video mode, release it otherwise.
   useEffect(() => {
-    if (mode === 'video' && !webcamInitializedRef.current) {
-      webcamInitializedRef.current = true;
-      
-      const initWebcam = async () => {
-        try {
-          const stream = await navigator.mediaDevices.getUserMedia({ 
-            video: { width: 1280, height: 720, facingMode: 'user' } 
-          });
-          setStream(stream);
-          
-          if (videoRef.current) {
-            videoRef.current.srcObject = stream;
-            videoRef.current.onloadedmetadata = () => {
-              videoRef.current?.play();
-            };
-          }
-        } catch (error) {
-          console.error('Webcam access failed:', error);
-        }
-      };
+    if (mode !== 'video') return;
 
-      initWebcam();
-    }
+    let cancelled = false;
+    let mediaStream: MediaStream | null = null;
+    setWebcamError(false);
+
+    navigator.mediaDevices
+      .getUserMedia({ video: true })
+      .then((acquired) => {
+        if (cancelled) {
+          acquired.getTracks().forEach((track) => track.stop());
+          return;
+        }
+        mediaStream = acquired;
+        setStream(acquired);
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setWebcamError(true);
+        // Fall back to image mode if the webcam is unavailable.
+        setMode('image');
+      });
 
     return () => {
-      if (stream) {
-        stream.getTracks().forEach(track => track.stop());
-        setStream(null);
-        webcamInitializedRef.current = false;
+      cancelled = true;
+      if (mediaStream) {
+        mediaStream.getTracks().forEach((track) => track.stop());
       }
+      setStream(null);
     };
   }, [mode]);
+
+  // Attach the stream once the <video> element is mounted.
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !stream) return;
+
+    video.srcObject = stream;
+    video.play().catch(() => {
+      /* Autoplay can be rejected until metadata is ready; ignore. */
+    });
+  }, [stream, mode]);
 
   // Get initials from display name
   const getInitials = (name?: string) => {
@@ -60,29 +71,52 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
     return name.substring(0, 2).toUpperCase();
   };
 
-  const initials = getInitials(displayName || userName);
+  const initials = getInitials(actualDisplayName);
 
   return (
     <>
       {/* Video mode display */}
       {mode === 'video' && (
-        <video
-          ref={videoRef}
-          autoPlay
-          muted
-          playsInline
-          style={{
-            position: 'absolute',
-            left: `${x}px`,
-            top: `${y}px`,
-            width: `${size}px`,
-            height: `${size}px`,
-            objectFit: 'cover',
-            borderRadius: '8px',
-            pointerEvents: 'none',
-            zIndex: 1000,
-          }}
-        />
+        <>
+          <video
+            ref={videoRef}
+            autoPlay
+            muted
+            playsInline
+            style={{
+              position: 'absolute',
+              left: `${x}px`,
+              top: `${y}px`,
+              width: `${size}px`,
+              height: `${size}px`,
+              objectFit: 'cover',
+              borderRadius: '8px',
+              pointerEvents: 'none',
+              zIndex: 1000,
+            }}
+          />
+          {webcamError && (
+            <div
+              style={{
+                position: 'absolute',
+                left: `${x}px`,
+                top: `${y}px`,
+                width: `${size}px`,
+                height: `${size}px`,
+                backgroundColor: '#333333',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: '#ffffff',
+                fontSize: '12px',
+                zIndex: 1001,
+              }}
+            >
+              Camera Error
+            </div>
+          )}
+        </>
       )}
 
       {/* Image mode display */}

@@ -2,6 +2,9 @@ import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { AuthTokens, User } from '@types';
 
+export const AUTH_TOKEN_KEY = 'skomma_access_token';
+export const AUTH_REFRESH_TOKEN_KEY = 'skomma_refresh_token';
+
 interface AuthState {
   user: User | null;
   tokens: AuthTokens | null;
@@ -21,7 +24,11 @@ export const useAuthStore = create<AuthState>()(
       isHydrated: false,
       setTokens: (tokens) => set({ tokens, isAuthenticated: Boolean(tokens) }),
       setUser: (user) => set({ user }),
-      logout: () => set({ user: null, tokens: null, isAuthenticated: false }),
+      logout: () => {
+        localStorage.removeItem(AUTH_TOKEN_KEY);
+        localStorage.removeItem(AUTH_REFRESH_TOKEN_KEY);
+        set({ user: null, tokens: null, isAuthenticated: false });
+      },
     }),
     {
       name: 'skomma-auth',

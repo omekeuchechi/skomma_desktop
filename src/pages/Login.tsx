@@ -5,7 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Button } from '@components/Button';
 import { login } from '@services/api';
-import { useAuthStore } from '@stores/authStore';
+import { useAuthStore, AUTH_TOKEN_KEY, AUTH_REFRESH_TOKEN_KEY } from '@stores/authStore';
 import { toApiError } from '@network/http';
 import { ROUTES } from '@constants/index';
 import { useBackgroundCarousel } from '@hooks/useBackgroundCarousel';
@@ -37,8 +37,8 @@ export function Login() {
     try {
       // Use email as username for API compatibility
       const tokens = await login({ email: values.email, password: values.password });
-      localStorage.setItem('skomma_access_token', tokens.accessToken);
-      localStorage.setItem('skomma_refresh_token', tokens.refreshToken);
+      localStorage.setItem(AUTH_TOKEN_KEY, tokens.accessToken);
+      localStorage.setItem(AUTH_REFRESH_TOKEN_KEY, tokens.refreshToken);
       setTokens(tokens);
       navigate(ROUTES.home);
     } catch (error) {
