@@ -8,7 +8,7 @@ interface PassportWithModeProps {
   displayName?: string;
 }
 
-export default function PassportWithMode({ x, y, size, userName, displayName }: PassportWithModeProps) {
+export default function PassportWithMode({ x: _x, y: _y, size, userName, displayName }: PassportWithModeProps) {
   const actualDisplayName = displayName || userName;
   const [mode, setMode] = useState<'video' | 'image'>('image');
   const [showDropdown, setShowDropdown] = useState(false);
@@ -16,13 +16,20 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [webcamError, setWebcamError] = useState(false);
 
+  // Reset webcam error when switching to video mode
+  useEffect(() => {
+    if (mode === 'video') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
+      setWebcamError(false);
+    }
+  }, [mode]);
+
   // Acquire the webcam stream while in video mode, release it otherwise.
   useEffect(() => {
     if (mode !== 'video') return;
 
     let cancelled = false;
     let mediaStream: MediaStream | null = null;
-    setWebcamError(false);
 
     navigator.mediaDevices
       .getUserMedia({ video: true })
@@ -74,7 +81,13 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
   const initials = getInitials(actualDisplayName);
 
   return (
-    <>
+    <div
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+      }}
+    >
       {/* Video mode display */}
       {mode === 'video' && (
         <>
@@ -84,25 +97,21 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
             muted
             playsInline
             style={{
-              position: 'absolute',
-              left: `${x}px`,
-              top: `${y}px`,
-              width: `${size}px`,
-              height: `${size}px`,
+              width: '100%',
+              height: '100%',
               objectFit: 'cover',
               borderRadius: '8px',
               pointerEvents: 'none',
-              zIndex: 1000,
             }}
           />
           {webcamError && (
             <div
               style={{
                 position: 'absolute',
-                left: `${x}px`,
-                top: `${y}px`,
-                width: `${size}px`,
-                height: `${size}px`,
+                top: 0,
+                left: 0,
+                width: '100%',
+                height: '100%',
                 backgroundColor: '#333333',
                 borderRadius: '8px',
                 display: 'flex',
@@ -110,7 +119,6 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
                 justifyContent: 'center',
                 color: '#ffffff',
                 fontSize: '12px',
-                zIndex: 1001,
               }}
             >
               Camera Error
@@ -123,11 +131,8 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
       {mode === 'image' && (
         <div
           style={{
-            position: 'absolute',
-            left: `${x}px`,
-            top: `${y}px`,
-            width: `${size}px`,
-            height: `${size}px`,
+            width: '100%',
+            height: '100%',
             backgroundColor: '#4a90e2',
             borderRadius: '8px',
             display: 'flex',
@@ -136,7 +141,6 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
             fontSize: `${size / 2}px`,
             color: '#ffffff',
             fontWeight: 'bold',
-            zIndex: 1000,
           }}
         >
           {initials}
@@ -147,18 +151,18 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
       <div
         style={{
           position: 'absolute',
-          left: `${x + size - 20}px`,
-          top: `${y}px`,
+          top: 0,
+          right: 0,
           width: '20px',
           height: '20px',
           cursor: 'pointer',
-          zIndex: 1001,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           fontSize: '16px',
           color: '#ffffff',
           fontWeight: 'bold',
+          pointerEvents: 'auto',
         }}
         onClick={() => setShowDropdown(!showDropdown)}
       >
@@ -170,14 +174,14 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
         <div
           style={{
             position: 'absolute',
-            left: `${x + size}px`,
-            top: `${y}px`,
+            top: 0,
+            right: '-130px',
             backgroundColor: '#333333',
             borderRadius: '8px',
             padding: '8px',
-            zIndex: 1002,
             minWidth: '120px',
             boxShadow: '0 2px 8px rgba(0,0,0,0.3)',
+            pointerEvents: 'auto',
           }}
         >
           <div
@@ -186,6 +190,7 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
               cursor: 'pointer',
               color: mode === 'video' ? '#00ff00' : '#ffffff',
               borderRadius: '4px',
+              pointerEvents: 'auto',
             }}
             onClick={() => {
               setMode('video');
@@ -200,6 +205,7 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
               cursor: 'pointer',
               color: mode === 'image' ? '#00ff00' : '#ffffff',
               borderRadius: '4px',
+              pointerEvents: 'auto',
             }}
             onClick={() => {
               setMode('image');
@@ -210,6 +216,6 @@ export default function PassportWithMode({ x, y, size, userName, displayName }: 
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

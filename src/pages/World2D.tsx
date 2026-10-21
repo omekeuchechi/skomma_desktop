@@ -3,164 +3,194 @@ import Phaser from 'phaser';
 import { useNavigate } from 'react-router-dom';
 import { useWorldPositionStore } from '@stores/worldPositionStore';
 import { useAuthStore } from '@stores/authStore';
-import { createPlot, createDoor, checkDoorCollision, getBuildingExitPosition, samplePlotConfig, BuildingRoof } from '@world/building';
+import {
+  createPlot,
+  createDoor,
+  checkDoorCollision,
+  getBuildingExitPosition,
+  samplePlotConfig,
+  BuildingRoof,
+} from '@world/building';
 import PassportWithMode from '@components/PassportWithMode';
 import { loadWorldSounds, playSoundWithFallback } from '@world/audio/audioLoader';
 
+const WORLD_SIZE = 10000;
+const PASSPORT_SIZE = 100;
+const MARGIN = 0;
+const MIN_X = MARGIN + PASSPORT_SIZE / 2;
+const MAX_X = WORLD_SIZE - MARGIN - PASSPORT_SIZE / 2;
+const MIN_Y = MARGIN + PASSPORT_SIZE / 2;
+const MAX_Y = WORLD_SIZE - MARGIN - PASSPORT_SIZE / 2;
+
 export default function World2D() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const { outdoorPosition, setOutdoorPosition, setCurrentScene, setDoorPosition } = useWorldPositionStore();
-  const { user } = useAuthStore();
+
+  // Narrow store subscriptions — component only re-renders when these change.
+  const setOutdoorPosition = useWorldPositionStore((s) => s.setOutdoorPosition);
+  const setCurrentScene = useWorldPositionStore((s) => s.setCurrentScene);
+  const setDoorPosition = useWorldPositionStore((s) => s.setDoorPosition);
+  const outdoorPosition = useWorldPositionStore((s) => s.outdoorPosition);
+  const user = useAuthStore((s) => s.user);
+
   const [passportPosition, setPassportPosition] = useState(outdoorPosition);
+
   const [isLoading, setIsLoading] = useState(false);
   const setIsLoadingRef = useRef(setIsLoading);
   const gameRef = useRef<Phaser.Game | null>(null);
   const gameInitializedRef = useRef(false);
   const initialPositionRef = useRef(outdoorPosition);
 
-  // Update ref when setIsLoading changes
+  // Keep setIsLoading ref fresh
   useEffect(() => {
     setIsLoadingRef.current = setIsLoading;
   }, [setIsLoading]);
 
-  // Set initial position once when component mounts
+  // Update spawn position when the stored outdoor position changes
+  // (e.g., after returning from a building).
   useEffect(() => {
     initialPositionRef.current = outdoorPosition;
+  }, [outdoorPosition]);
+
+  // Listen for live position updates from Phaser to track passport position
+  useEffect(() => {
+    const handlePositionUpdate = (event: Event) => {
+      const { detail } = event as CustomEvent<{ x: number; y: number }>;
+      setPassportPosition(detail);
+    };
+
+    window.addEventListener('passportPositionUpdate', handlePositionUpdate);
+    return () => window.removeEventListener('passportPositionUpdate', handlePositionUpdate);
   }, []);
 
   useEffect(() => {
     const container = containerRef.current;
-    const scrollContainer = scrollContainerRef.current;
-    if (!container || !scrollContainer || gameInitializedRef.current) return;
-
+    if (!container) return;
+    if (gameInitializedRef.current) return;
     gameInitializedRef.current = true;
-
-    // Store scroll container in window for Phaser to access
-    (window as { scrollContainer?: HTMLDivElement }).scrollContainer = scrollContainer;
-    (window as { setIsLoadingRef?: { current: (loading: boolean) => void } }).setIsLoadingRef = setIsLoadingRef;
 
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.CANVAS,
       parent: container,
-      width: 10000,
-      height: 10000,
+      width: window.innerWidth,
+      height: window.innerHeight,
       backgroundColor: '#000000',
-      audio: {
-        disableWebAudio: false,
+      audio: { disableWebAudio: false },
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
       },
       scene: {
-        preload: function(this: Phaser.Scene) {
-          // Load audio assets
+        preload: function (this: Phaser.Scene) {
           loadWorldSounds(this);
         },
-        create: function(this: Phaser.Scene) {
-          // Create green ground
-          const greenGround = this.add.rectangle(5000, 5000, 10000, 10000, 0x218727);
+        create: function (this: Phaser.Scene) {
+          // --- World bounds & camera ---
+          this.cameras.main.setBounds(0, 0, WORLD_SIZE, WORLD_SIZE);
+
+          // --- Ground ---
+          const greenGround = this.add.rectangle(
+            WORLD_SIZE / 2,
+            WORLD_SIZE / 2,
+            WORLD_SIZE,
+            WORLD_SIZE,
+            0x218727
+          );
           greenGround.setOrigin(0.5, 0.5);
           greenGround.setDepth(0);
 
-          // Create passport container at stored position
-          const passport = this.add.container(initialPositionRef.current.x, initialPositionRef.current.y);
+          // --- Passport (player container) ---
+          const passport = this.add.container(
+            initialPositionRef.current.x,
+            initialPositionRef.current.y
+          );
           passport.setDepth(1000);
 
-          // Add invisible rectangle for collision detection
-          const passportHitbox = this.add.rectangle(0, 0, 100, 100, 0x000000, 0);
+          const passportHitbox = this.add.rectangle(
+            0,
+            0,
+            PASSPORT_SIZE,
+            PASSPORT_SIZE,
+            0x000000,
+            0
+          );
           passport.add(passportHitbox);
 
-          // Store passport reference globally
-          (window as { passport?: Phaser.GameObjects.Container }).passport = passport;
+          // Camera follows the passport (instant snap, no lerp)
+          this.cameras.main.startFollow(passport, false, 1, 1);
 
-          // Create a sample plot with building
+          // --- Plot & roofs ---
           const plot = createPlot(this, samplePlotConfig);
           plot.setDepth(10);
 
-          // Store building roofs for collision detection
-          const buildingRoofs: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
-          plot.list.forEach((child: Phaser.GameObjects.GameObject) => {
-            if (child instanceof Phaser.GameObjects.Container) {
-              child.list.forEach((roofChild: Phaser.GameObjects.GameObject) => {
-                if (roofChild instanceof Phaser.GameObjects.Image || roofChild instanceof Phaser.GameObjects.Rectangle) {
-                  buildingRoofs.push(roofChild);
-                }
-              });
-            }
-          });
-          (window as { buildingRoofs?: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] }).buildingRoofs = buildingRoofs;
+          // Roof collision detection disabled for free movement
+          // const buildingRoofs: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
+          // plot.list.forEach((child: Phaser.GameObjects.GameObject) => {
+          //   if (child instanceof Phaser.GameObjects.Container) {
+          //     child.list.forEach((roofChild: Phaser.GameObjects.GameObject) => {
+          //       if (
+          //         roofChild instanceof Phaser.GameObjects.Image ||
+          //         roofChild instanceof Phaser.GameObjects.Rectangle
+          //       ) {
+          //         buildingRoofs.push(roofChild);
+          //       }
+          //     });
+          //   }
+          // });
 
-          // Add doors for each building in the plot
+          // --- Doors ---
           const doors: Phaser.GameObjects.Rectangle[] = [];
           samplePlotConfig.buildingRoofs.forEach((building: BuildingRoof) => {
             if (!building.hasDoor || !building.doorPosition) return;
-
-            const absoluteDoorX = samplePlotConfig.position.x + building.position.x + building.doorPosition.x;
-            const absoluteDoorY = samplePlotConfig.position.y + building.position.y + building.doorPosition.y;
+            const absoluteDoorX =
+              samplePlotConfig.position.x + building.position.x + building.doorPosition.x;
+            const absoluteDoorY =
+              samplePlotConfig.position.y + building.position.y + building.doorPosition.y;
 
             const door = createDoor(this, {
               position: { x: absoluteDoorX, y: absoluteDoorY },
               width: 150,
               height: 20,
               sceneName: building.sceneName || '',
-              soundKey: 'opening_door'
+              soundKey: 'opening_door',
             });
             door.setDepth(20);
             doors.push(door);
           });
-          (window as { doors?: Phaser.GameObjects.Rectangle[] }).doors = doors;
 
-          // Movement settings
+          // --- Movement config ---
           const speed = 20;
           const clickSpeed = 15;
-          const passportSize = 100;
-          const margin = 50;
-          const minX = margin + passportSize / 2;
-          const maxX = 10000 - margin - passportSize / 2;
-          const minY = margin + passportSize / 2;
-          const maxY = 10000 - margin - passportSize / 2;
-
           let targetX: number | null = null;
           let targetY: number | null = null;
-          let wasRoofCollision = false;
+          let activeDoor: Phaser.GameObjects.Rectangle | null = null;
 
-          // Keyboard controls
           const cursors = this.input.keyboard!.createCursorKeys();
-
-          // Create target line for click-to-move
           const targetLine = this.add.graphics();
+          targetLine.setDepth(999);
 
-          // Click-to-move handler
+          // Click-to-move — worldX/worldY are camera-aware
           this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => {
             if (pointer.leftButtonDown()) {
-              // Set target to clicked position
-              targetX = Phaser.Math.Clamp(pointer.worldX, minX, maxX);
-              targetY = Phaser.Math.Clamp(pointer.worldY, minY, maxY);
+              targetX = Phaser.Math.Clamp(pointer.worldX, MIN_X, MAX_X);
+              targetY = Phaser.Math.Clamp(pointer.worldY, MIN_Y, MAX_Y);
             }
           });
 
-          // Scroll wheel handler for passport movement
-          this.input.on('wheel', (pointer: Phaser.Input.Pointer, gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, deltaZ: number) => {
-            const scrollSpeed = 10;
-            // Clear any existing click-to-move target
-            targetX = null;
-            targetY = null;
-            // Apply scroll movement
-            passport.x = Phaser.Math.Clamp(passport.x - deltaX * scrollSpeed, minX, maxX);
-            passport.y = Phaser.Math.Clamp(passport.y - deltaY * scrollSpeed, minY, maxY);
+          // Handle viewport resize (Scale.RESIZE mode)
+          this.scale.on('resize', (gameSize: Phaser.Structs.Size) => {
+            this.cameras.main.setSize(gameSize.width, gameSize.height);
           });
 
-          // Update loop for movement
           this.events.on('update', () => {
             let dx = 0;
             let dy = 0;
 
-            // Arrow key movement
             if (cursors.left!.isDown) dx -= speed;
             if (cursors.right!.isDown) dx += speed;
             if (cursors.up!.isDown) dy -= speed;
             if (cursors.down!.isDown) dy += speed;
 
-            // Click-to-move (takes priority if target is set)
             if (targetX !== null && targetY !== null) {
               const diffX = targetX - passport.x;
               const diffY = targetY - passport.y;
@@ -170,99 +200,104 @@ export default function World2D() {
                 dx = (diffX / distance) * clickSpeed;
                 dy = (diffY / distance) * clickSpeed;
               } else {
-                // Reached target
                 passport.x = targetX;
                 passport.y = targetY;
                 targetX = null;
                 targetY = null;
                 dx = 0;
                 dy = 0;
+                targetLine.clear();
               }
             }
 
             if (dx !== 0 || dy !== 0) {
-              // Calculate new position
-              const newX = Phaser.Math.Clamp(passport.x + dx, minX, maxX);
-              const newY = Phaser.Math.Clamp(passport.y + dy, minY, maxY);
+              const newX = Phaser.Math.Clamp(passport.x + dx, MIN_X, MAX_X);
+              const newY = Phaser.Math.Clamp(passport.y + dy, MIN_Y, MAX_Y);
 
-              // Check roof collision before moving (prevent moving on top of roofs)
-              const buildingRoofsRef = (window as { buildingRoofs?: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] }).buildingRoofs;
-              let roofCollision = false;
+              // --- Roof collision (disabled for free movement) ---
+              // let roofCollision = false;
+              // if (buildingRoofs.length > 0) {
+              //   const tempBounds = new Phaser.Geom.Rectangle(
+              //     newX - PASSPORT_SIZE / 2,
+              //     newY - PASSPORT_SIZE / 2,
+              //     PASSPORT_SIZE,
+              //     PASSPORT_SIZE
+              //   );
+              //   for (const roof of buildingRoofs) {
+              //     if (
+              //       Phaser.Geom.Intersects.RectangleToRectangle(tempBounds, roof.getBounds())
+              //     ) {
+              //       roofCollision = true;
+              //       break;
+              //     }
+              //   }
+              // }
 
-              if (buildingRoofsRef && buildingRoofsRef.length > 0) {
-                const tempPassportBounds = new Phaser.Geom.Rectangle(
-                  newX - 50,
-                  newY - 50,
-                  100,
-                  100
-                );
+              // if (roofCollision) {
+              //   if (!wasRoofCollision) {
+              //     playSoundWithFallback(this, 'wall_hit', 0.3);
+              //   }
+              //   wasRoofCollision = true;
+              // } else {
+              //   wasRoofCollision = false;
+                passport.x = newX;
+                passport.y = newY;
+              // }
+            }
 
-                buildingRoofsRef.forEach((roof: Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle) => {
-                  const roofBounds = roof.getBounds();
-                  if (Phaser.Geom.Intersects.RectangleToRectangle(tempPassportBounds, roofBounds)) {
-                    roofCollision = true;
-                  }
-                });
+            // --- Persist & broadcast current position ---
+            const currentX = passport.x;
+            const currentY = passport.y;
+            setOutdoorPosition({ x: currentX, y: currentY });
 
-                if (roofCollision) {
-                  // Play wall hit sound only once per roof contact
-                  if (!wasRoofCollision) {
-                    playSoundWithFallback(this, 'wall_hit', 0.3);
-                  }
-                  wasRoofCollision = true;
+            // Broadcast position update to React component
+            window.dispatchEvent(
+              new CustomEvent('passportPositionUpdate', {
+                detail: { x: currentX, y: currentY },
+              })
+            );
 
-                  // Don't move if roof collision detected
-                  return;
-                }
-
-                wasRoofCollision = false;
-              }
-
-              passport.x = newX;
-              passport.y = newY;
-
-              // Save position to store
-              setOutdoorPosition({ x: newX, y: newY });
-
-              // Update React state with passport position
-              const positionUpdate = new CustomEvent('passportPositionUpdate', {
-                detail: { x: newX, y: newY }
-              });
-              window.dispatchEvent(positionUpdate);
-
-              // Check door collision for all doors
-              const doorsRef = (window as { doors?: Phaser.GameObjects.Rectangle[] }).doors;
-              if (doorsRef && doorsRef.length > 0) {
-                const passportBounds = passport.getBounds();
-
-                doorsRef.forEach((doorRef) => {
-                  const doorBounds = doorRef.getBounds();
-                  const isColliding = Phaser.Geom.Intersects.RectangleToRectangle(passportBounds, doorBounds);
-
-                  if (isColliding) {
-                    checkDoorCollision(passport, doorRef, this, (sceneName: string) => {
-                      // Show loading overlay
-                      const setIsLoadingRef = (window as { setIsLoadingRef?: { current: (loading: boolean) => void } }).setIsLoadingRef;
-                      if (setIsLoadingRef) setIsLoadingRef.current(true);
-                      // Save current scene state
-                      setCurrentScene('indoor');
-                      // Save the spot in front of the building to return to on exit
-                      const exitPosition = getBuildingExitPosition(samplePlotConfig, sceneName);
-                      if (exitPosition) {
-                        setDoorPosition(exitPosition);
-                        setOutdoorPosition(exitPosition);
-                      }
-                      // Navigate to inner building scene after short delay
-                      setTimeout(() => {
-                        navigate(`/inner-building/${sceneName}`);
-                      }, 500);
-                    });
-                  }
-                });
+            // --- Door collision (debounced) ---
+            const passportBounds = passport.getBounds();
+            let overlappingDoor: Phaser.GameObjects.Rectangle | null = null;
+            for (const doorRef of doors) {
+              if (
+                Phaser.Geom.Intersects.RectangleToRectangle(
+                  passportBounds,
+                  doorRef.getBounds()
+                )
+              ) {
+                overlappingDoor = doorRef;
+                break;
               }
             }
 
-            // Draw target line if moving towards target
+            if (overlappingDoor && overlappingDoor !== activeDoor) {
+              activeDoor = overlappingDoor;
+
+              checkDoorCollision(passport, overlappingDoor, this, (sceneName: string) => {
+                // Lazy auth read — never closes over a stale `user`.
+                const currentUser = useAuthStore.getState().user;
+                if (!currentUser) return;
+
+                setIsLoadingRef.current(true);
+                setCurrentScene('indoor');
+
+                const exitPosition = getBuildingExitPosition(samplePlotConfig, sceneName);
+                if (exitPosition) {
+                  setDoorPosition(exitPosition);
+                  setOutdoorPosition(exitPosition);
+                }
+
+                setTimeout(() => {
+                  navigate(`/inner-building/${sceneName}`);
+                }, 500);
+              });
+            } else if (!overlappingDoor) {
+              activeDoor = null;
+            }
+
+            // --- Target line ---
             if (targetX !== null && targetY !== null) {
               targetLine.clear();
               targetLine.lineStyle(2, 0xffff00, 0.5);
@@ -274,8 +309,8 @@ export default function World2D() {
               targetLine.clear();
             }
           });
-        }
-      }
+        },
+      },
     };
 
     const game = new Phaser.Game(config);
@@ -286,49 +321,38 @@ export default function World2D() {
         gameRef.current.destroy(true);
         gameRef.current = null;
       }
-      delete (window as { scrollContainer?: HTMLDivElement }).scrollContainer;
       gameInitializedRef.current = false;
     };
-  }, [navigate, setOutdoorPosition, setCurrentScene, setDoorPosition, user]);
-
-  // Listen for passport position updates from Phaser
-  useEffect(() => {
-    const handlePositionUpdate = (event: Event) => {
-      const customEvent = event as CustomEvent<{ x: number; y: number }>;
-      setPassportPosition(customEvent.detail);
-
-      // Scroll the container to follow the passport (camera-like movement)
-      const scrollContainer = scrollContainerRef.current;
-      if (scrollContainer) {
-        const offsetX = customEvent.detail.x - window.innerWidth / 2;
-        const offsetY = customEvent.detail.y - window.innerHeight / 2;
-        scrollContainer.scrollLeft = offsetX;
-        scrollContainer.scrollTop = offsetY;
-      }
-    };
-
-    window.addEventListener('passportPositionUpdate', handlePositionUpdate);
-    return () => {
-      window.removeEventListener('passportPositionUpdate', handlePositionUpdate);
-    };
-  }, []);
+    // `user` intentionally not in deps — read via useAuthStore.getState().
+  }, [navigate, setOutdoorPosition, setCurrentScene, setDoorPosition]);
 
   return (
-    <div
-      ref={scrollContainerRef}
-      className="relative w-full h-full overflow-auto"
-    >
+    <div className="relative w-screen h-screen overflow-hidden">
+      {/* Phaser canvas fills the viewport */}
+      <div ref={containerRef} className="absolute inset-0" />
+
+      {/*
+        Overlay passport pinned to viewport center (camera keeps the
+        passport centered). pointer-events-none lets clicks reach the canvas.
+      */}
       <div
-        ref={containerRef}
-        className="block"
-        style={{ width: '10000px', height: '10000px' }}
-      />
-      <PassportWithMode
-        x={passportPosition.x - 50}
-        y={passportPosition.y - 50}
-        size={100}
-        displayName={user?.displayName || user?.username}
-      />
+        className="pointer-events-none absolute"
+        style={{
+          left: '50%',
+          top: '50%',
+          transform: 'translate(-50%, -50%)',
+          width: PASSPORT_SIZE,
+          height: PASSPORT_SIZE,
+        }}
+      >
+        <PassportWithMode
+          x={passportPosition.x}
+          y={passportPosition.y}
+          size={PASSPORT_SIZE}
+          displayName={user?.displayName || user?.username}
+        />
+      </div>
+
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="text-white text-2xl">Loading...</div>
