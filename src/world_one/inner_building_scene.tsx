@@ -5,102 +5,119 @@ import { createBuildingScene } from '@world_one/terrain/plot_1/scripts/buildings
 import { createDoor } from '@world_one/terrain/plot_1/scripts/services/index';
 import type { BuildingSceneConfig } from '@world_one/terrain/plot_1/scripts/types/index';
 import { useWorldPositionStore } from '@stores/worldPositionStore';
+import { useAuthStore } from '@stores/authStore';
 import PassportWithMode from '@components/PassportWithMode';
+
+// Define building scenes configuration
+const buildingScenes: Record<string, BuildingSceneConfig> = {
+  duplex_indoor: {
+    sceneName: 'duplex_indoor',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    floorTexture: 'tiles',
+    objects: [
+      {
+        image: 'table',
+        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        width: 200,
+        height: 120,
+        collision: true
+      }
+    ],
+    background: '#ffffff',
+    exitDoor: {
+      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+      width: 150,
+      height: 20
+    }
+  },
+  duplex_indoor2: {
+    sceneName: 'duplex_indoor2',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    floorTexture: '',
+    objects: [],
+    background: '#ffffff',
+    exitDoor: {
+      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+      width: 150,
+      height: 20
+    }
+  },
+  small_building_indoor1: {
+    sceneName: 'small_building_indoor1',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    floorTexture: 'tiles',
+    objects: [
+      {
+        image: 'table',
+        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        width: 200,
+        height: 120,
+        collision: true
+      }
+    ],
+    background: '#ffffff',
+    exitDoor: {
+      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+      width: 150,
+      height: 20
+    }
+  },
+  small_building_indoor2: {
+    sceneName: 'small_building_indoor2',
+    width: window.innerWidth,
+    height: window.innerHeight,
+    floorTexture: 'tiles',
+    objects: [
+      {
+        image: 'table',
+        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
+        width: 200,
+        height: 120,
+        collision: true
+      }
+    ],
+    background: '#ffffff',
+    exitDoor: {
+      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
+      width: 150,
+      height: 20
+    }
+  },
+};
 
 export default function InnerBuildingScene() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { sceneName } = useParams<{ sceneName: string }>();
   const { setCurrentScene, doorPosition, setOutdoorPosition } = useWorldPositionStore();
-  const [passportPosition, setPassportPosition] = useState({ 
-    x: window.innerWidth / 2, 
-    y: window.innerHeight / 2 
+  const { user } = useAuthStore();
+  const [passportPosition, setPassportPosition] = useState({
+    x: 5000,
+    y: 5000
   });
   const [isLoading, setIsLoading] = useState(false);
 
+  // Initialize passport position based on scene config
+  useEffect(() => {
+    if (sceneName) {
+      const config = buildingScenes[sceneName];
+      if (config && config.exitDoor) {
+        setPassportPosition({
+          x: 5000 + config.exitDoor.position.x - config.width / 2 - 100,
+          y: 5000 + config.exitDoor.position.y - config.height / 2
+        });
+      }
+    }
+  }, [sceneName]);
+
   useEffect(() => {
     const container = containerRef.current;
-    if (!container || !sceneName) return;
-
-    // Define building scenes based on sceneName
-    const buildingScenes: Record<string, BuildingSceneConfig> = {
-      duplex_indoor: {
-        sceneName: 'duplex_indoor',
-        width: window.innerWidth,
-        height: window.innerHeight,
-        floorTexture: 'tiles',
-        objects: [
-          {
-            image: 'table',
-            position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-            width: 200,
-            height: 120,
-            collision: true
-          }
-        ],
-        background: '#ffffff',
-        exitDoor: {
-          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-          width: 150,
-          height: 20
-        }
-      },
-      duplex_indoor2: {
-        sceneName: 'duplex_indoor2',
-        width: window.innerWidth,
-        height: window.innerHeight,
-        floorTexture: '',
-        objects: [],
-        background: '#ffffff',
-        exitDoor: {
-          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-          width: 150,
-          height: 20
-        }
-      },
-      small_building_indoor1: {
-        sceneName: 'small_building_indoor1',
-        width: window.innerWidth,
-        height: window.innerHeight,
-        floorTexture: 'tiles',
-        objects: [
-          {
-            image: 'table',
-            position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-            width: 200,
-            height: 120,
-            collision: true
-          }
-        ],
-        background: '#ffffff',
-        exitDoor: {
-          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-          width: 150,
-          height: 20
-        }
-      },
-      small_building_indoor2: {
-        sceneName: 'small_building_indoor2',
-        width: window.innerWidth,
-        height: window.innerHeight,
-        floorTexture: 'tiles',
-        objects: [
-          {
-            image: 'table',
-            position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-            width: 200,
-            height: 120,
-            collision: true
-          }
-        ],
-        background: '#ffffff',
-        exitDoor: {
-          position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-          width: 150,
-          height: 20
-        }
-      },
-    };
+    const scrollContainer = scrollContainerRef.current;
+    if (!container || !scrollContainer || !sceneName) return;
 
     const config = buildingScenes[sceneName];
     if (!config) {
@@ -110,9 +127,9 @@ export default function InnerBuildingScene() {
 
     const phaserConfig: Phaser.Types.Core.GameConfig = {
       type: Phaser.CANVAS,
-      parent: container,
-      width: config.width,
-      height: config.height,
+      parent: scrollContainer,
+      width: 10000,
+      height: 10000,
       backgroundColor: '#000000',
       autoFocus: true,
       audio: {
@@ -125,11 +142,10 @@ export default function InnerBuildingScene() {
         },
         create: function(this: Phaser.Scene) {
           const indoorScene = createBuildingScene(this, config);
-          indoorScene.setPosition(config.width / 2, config.height / 2);
 
           if (config.exitDoor) {
             const exitDoor = createDoor(this, {
-              position: config.exitDoor.position,
+              position: { x: 5000 + config.exitDoor.position.x - config.width / 2, y: 5000 + config.exitDoor.position.y - config.height / 2 },
               width: config.exitDoor.width,
               height: config.exitDoor.height,
               sceneName: 'outdoor',
@@ -139,21 +155,21 @@ export default function InnerBuildingScene() {
             (window as { exitDoor?: Phaser.GameObjects.Rectangle }).exitDoor = exitDoor;
           }
 
+          // Store building scene at center of world
+          const buildingContainer = this.add.container(5000, 5000);
+          buildingContainer.add(indoorScene);
+          buildingContainer.setDepth(10);
+
           // Add passport for indoor scene (invisible, used for position tracking)
           const passportSize = 100;
-          // Position passport 50px to the left of the exit door
-          // Exit door is at config.width - 75, so passport should be at config.width - 125
-          const startX = config.width - 125;
-          const startY = config.height / 2;
+          // Position passport in the center of the world
+          const startX = 5000;
+          const startY = 5000;
           const passport = this.add.container(startX, startY);
           passport.setDepth(1000);
-          
+
           // Store passport reference globally
           (window as { passport?: Phaser.GameObjects.Container }).passport = passport;
-
-          // Store config width/height for React to access
-          (window as { configWidth?: number; configHeight?: number }).configWidth = config.width;
-          (window as { configWidth?: number; configHeight?: number }).configHeight = config.height;
 
           // Movement settings
           const speed = 20;
@@ -161,9 +177,9 @@ export default function InnerBuildingScene() {
           let targetX: number | null = null;
           let targetY: number | null = null;
           const minX = passportSize / 2;
-          const maxX = config.width - passportSize / 2;
+          const maxX = 10000 - passportSize / 2;
           const minY = passportSize / 2;
-          const maxY = config.height - passportSize / 2;
+          const maxY = 10000 - passportSize / 2;
 
           // Keyboard controls
           const cursors = this.input.keyboard!.createCursorKeys();
@@ -179,6 +195,17 @@ export default function InnerBuildingScene() {
               targetX = Phaser.Math.Clamp(pointer.x, minX, maxX);
               targetY = Phaser.Math.Clamp(pointer.y, minY, maxY);
             }
+          });
+
+          // Scroll wheel handler for passport movement
+          this.input.on('wheel', (_pointer: Phaser.Input.Pointer, _gameObjects: Phaser.GameObjects.GameObject[], deltaX: number, deltaY: number, _deltaZ: number) => {
+            const scrollSpeed = 10;
+            // Clear any existing click-to-move target
+            targetX = null;
+            targetY = null;
+            // Apply scroll movement
+            passport.x = Phaser.Math.Clamp(passport.x - deltaX * scrollSpeed, minX, maxX);
+            passport.y = Phaser.Math.Clamp(passport.y - deltaY * scrollSpeed, minY, maxY);
           });
 
           // Update loop for movement
@@ -279,28 +306,53 @@ export default function InnerBuildingScene() {
     return () => {
       game.destroy(true);
     };
-  }, [sceneName, navigate, setCurrentScene, doorPosition, setOutdoorPosition]);
+  }, [sceneName, navigate, setCurrentScene, doorPosition, setOutdoorPosition, user]);
 
   // Listen for passport position updates from Phaser
   useEffect(() => {
     const handlePositionUpdate = (event: Event) => {
       const customEvent = event as CustomEvent<{ x: number; y: number }>;
       setPassportPosition(customEvent.detail);
+
+      // Scroll the container to follow the passport (camera-like movement)
+      const scrollContainer = scrollContainerRef.current;
+      if (scrollContainer) {
+        const offsetX = customEvent.detail.x - window.innerWidth / 2;
+        const offsetY = customEvent.detail.y - window.innerHeight / 2;
+        scrollContainer.scrollLeft = offsetX;
+        scrollContainer.scrollTop = offsetY;
+      }
     };
 
     window.addEventListener('passportPositionUpdate', handlePositionUpdate);
+
+    // Initial scroll to center of world
+    const scrollContainer = scrollContainerRef.current;
+    if (scrollContainer) {
+      scrollContainer.scrollLeft = 5000 - window.innerWidth / 2;
+      scrollContainer.scrollTop = 5000 - window.innerHeight / 2;
+    }
+
     return () => {
       window.removeEventListener('passportPositionUpdate', handlePositionUpdate);
     };
-  }, []);
+  }, [scrollContainerRef]);
 
   return (
-    <div className="relative w-full h-full flex items-center justify-center bg-gray-900">
-      <div ref={containerRef} className="block" />
+    <div
+      ref={scrollContainerRef}
+      className="relative w-full h-full overflow-auto bg-gray-900"
+    >
+      <div
+        ref={containerRef}
+        className="block"
+        style={{ width: '10000px', height: '10000px' }}
+      />
       <PassportWithMode
         x={passportPosition.x - 50}
         y={passportPosition.y - 50}
         size={100}
+        displayName={user?.displayName || user?.username}
       />
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

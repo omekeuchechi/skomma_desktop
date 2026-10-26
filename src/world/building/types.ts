@@ -26,5 +26,9 @@ export interface PlotConfig {
   position: Position;
   width: number;
   height: number;
+  shapes: any[];
+  shapesPositions: any[];
   buildingRoofs: BuildingRoof[];
+  objCollision: boolean[];
+  objSounds: string[];
 }

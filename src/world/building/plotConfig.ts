@@ -4,6 +4,8 @@ export const samplePlotConfig: PlotConfig = {
   position: { x: 500, y: 500 },
   width: 1500,
   height: 1000,
+  shapes: [],
+  shapesPositions: [],
   buildingRoofs: [
     {
       image: 'building1',
@@ -25,5 +27,7 @@ export const samplePlotConfig: PlotConfig = {
       doorImage: '',
       sceneName: 'indoor2'
     }
-  ]
+  ],
+  objCollision: [true, true],
+  objSounds: []
 };

@@ -4,7 +4,7 @@ import { PlotConfig } from '../types/index';
  * Plot 1 configuration
  */
 export const plot_1Config: PlotConfig = {
-  position: { x: 500, y: 500 },
+  position: { x: 4500, y: 4500 },
   width: 1500,
   height: 1000,
   shapes: [],
@@ -54,3 +54,22 @@ export const plot_1Config: PlotConfig = {
   objCollision: [true, true, true, true],
   objSounds: []
 };
+
+/**
+ * Asset paths for plot 1
+ */
+export const plot_1Assets = {
+  duplex_roof: '/src/world_one/terrain/plot_1/assets/imgs/duplex_roof.jpg',
+  duplex_roof2: '/src/world_one/terrain/plot_1/assets/imgs/duplex_roof2.jpg',
+  small_building_roof_1: '/src/world_one/terrain/plot_1/assets/imgs/small_building_roof_1.jpeg',
+  small_building_roof_2: '/src/world_one/terrain/plot_1/assets/imgs/small_building_roof_2.jpeg',
+};
+
+/**
+ * Loads all plot 1 assets into the Phaser scene
+ */
+export function loadPlot1Assets(scene: Phaser.Scene): void {
+  Object.entries(plot_1Assets).forEach(([key, path]) => {
+    scene.load.image(key, path);
+  });
+}
