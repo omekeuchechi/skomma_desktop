@@ -3,15 +3,14 @@ import Phaser from 'phaser';
 import { useNavigate } from 'react-router-dom';
 import { useWorldPositionStore } from '@stores/worldPositionStore';
 import { useAuthStore } from '@stores/authStore';
+import { loadPlot1Assets, plot_1Config } from '@world_one/terrain/plot_1/scripts/plots_scripts/plot_1.config';
+import { loadWorldSounds } from '@world/audio/audioLoader';
 import { createPlot } from '@world_one/terrain/plot_1/scripts/plots_scripts/plot';
 import { createPlotDoors, getBuildingExitPosition } from '@world_one/terrain/plot_1/scripts/plots_scripts/doors';
 import { checkDoorCollision } from '@world_one/terrain/plot_1/scripts/services/doorService';
-import { plot_1Config, loadPlot1Assets } from '@world_one/terrain/plot_1/scripts/plots_scripts/plot_1.config';
 import PassportWithMode from '@components/PassportWithMode';
-import { loadWorldSounds } from '@world/audio/audioLoader';
 
 const PASSPORT_SIZE = 100;
-const MARGIN = 0;
 
 export default function World2D() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -25,7 +24,6 @@ export default function World2D() {
   const user = useAuthStore((s) => s.user);
 
   const [passportPosition, setPassportPosition] = useState({ x: 5000, y: 5000 });
-
   const [isLoading, setIsLoading] = useState(false);
   const setIsLoadingRef = useRef(setIsLoading);
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -62,12 +60,14 @@ export default function World2D() {
     if (gameInitializedRef.current) return;
     gameInitializedRef.current = true;
 
+    console.log('Container dimensions:', container.offsetWidth, container.offsetHeight);
+
     const config: Phaser.Types.Core.GameConfig = {
       type: Phaser.CANVAS,
       parent: container,
-      width: 200000,
-      height: 200000,
-      backgroundColor: '#000000',
+      width: container.offsetWidth,
+      height: container.offsetHeight,
+      backgroundColor: '#218727', // Green background as fallback
       audio: { disableWebAudio: false },
       scene: {
         preload: function (this: Phaser.Scene) {
@@ -75,10 +75,11 @@ export default function World2D() {
           loadPlot1Assets(this);
 
           // Load plot_1 sounds
-          this.load.audio('opening_door', '/src/world_one/terrain/plot_1/assets/sounds/opening_door.mp3');
-          this.load.audio('wall_hit', '/src/world_one/terrain/plot_1/assets/sounds/wall_hit.mp3');
+          this.load.audio('opening_door', '/world_one/terrain/plot_1/assets/sounds/opening_door.mp3');
+          this.load.audio('wall_hit', '/world_one/terrain/plot_1/assets/sounds/wall_hit.mp3');
         },
         create: function (this: Phaser.Scene) {
+          console.log('Scene create called');
           // --- World bounds & camera (no bounds - free movement) ---
           // this.cameras.main.setBounds is removed to allow free movement
 
@@ -98,11 +99,12 @@ export default function World2D() {
           );
           greenGround.setOrigin(0.5, 0.5);
           greenGround.setDepth(0);
+          console.log('Green ground created at:', greenGround.x, greenGround.y);
 
           // --- Passport (player container) ---
           const passport = this.add.container(
-            5000,
-            5000
+            initialPositionRef.current.x,
+            initialPositionRef.current.y
           );
           passport.setDepth(1000);
 
@@ -116,9 +118,9 @@ export default function World2D() {
           );
           passport.add(passportHitbox);
 
-          // Camera follows the passport (instant snap, no lerp)
-          this.cameras.main.startFollow(passport, false, 1, 1);
+          // Camera setup - manually follow passport in update loop
           this.cameras.main.setZoom(1);
+          // Don't use startFollow - we'll manually update camera in update loop
 
           // --- Plot & roofs ---
           const plot = createPlot(this, plot_1Config);
@@ -284,6 +286,10 @@ export default function World2D() {
             } else {
               targetLine.clear();
             }
+
+            // --- Update camera to follow passport ---
+            this.cameras.main.scrollX = passport.x - this.cameras.main.width / 2;
+            this.cameras.main.scrollY = passport.y - this.cameras.main.height / 2;
           });
         },
       },
@@ -305,7 +311,7 @@ export default function World2D() {
   return (
     <div className="relative w-screen h-screen overflow-hidden">
       {/* Phaser canvas fills the viewport */}
-      <div ref={containerRef} className="absolute inset-0" />
+      <div ref={containerRef} className="absolute inset-0 w-full h-full" />
 
       {/*
         Overlay passport pinned to viewport center (camera keeps the

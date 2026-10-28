@@ -59,10 +59,10 @@ export const plot_1Config: PlotConfig = {
  * Asset paths for plot 1
  */
 export const plot_1Assets = {
-  duplex_roof: '/src/world_one/terrain/plot_1/assets/imgs/duplex_roof.jpg',
-  duplex_roof2: '/src/world_one/terrain/plot_1/assets/imgs/duplex_roof2.jpg',
-  small_building_roof_1: '/src/world_one/terrain/plot_1/assets/imgs/small_building_roof_1.jpeg',
-  small_building_roof_2: '/src/world_one/terrain/plot_1/assets/imgs/small_building_roof_2.jpeg',
+  duplex_roof: '/world_one/terrain/plot_1/assets/imgs/duplex_roof.jpg',
+  duplex_roof2: '/world_one/terrain/plot_1/assets/imgs/duplex_roof2.jpg',
+  small_building_roof_1: '/world_one/terrain/plot_1/assets/imgs/small_building_roof_1.jpeg',
+  small_building_roof_2: '/world_one/terrain/plot_1/assets/imgs/small_building_roof_2.jpeg',
 };
 
 /**

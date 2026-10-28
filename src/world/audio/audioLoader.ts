@@ -6,12 +6,8 @@ export const AVAILABLE_SOUNDS = {
 };
 
 export function loadWorldSounds(scene: Phaser.Scene): void {
-  // For now, we'll create placeholder sounds using Phaser's audio system
-  // In production, you would have actual audio files in your assets folder
   Object.entries(AVAILABLE_SOUNDS).forEach(([key, filename]) => {
-    // Placeholder - in production, use:
-    // scene.load.audio(key, `/assets/sounds/${filename}`);
-    console.log(`[Audio] Would load sound: ${key} from ${filename}`);
+    scene.load.audio(key, `/world_one/terrain/plot_1/assets/sounds/${filename}`);
   });
 }
 

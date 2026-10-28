@@ -9,7 +9,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
   const { isAuthenticated, isHydrated } = useAuthStore();
 
   if (!isHydrated) {
-    return null; // or return a loading spinner
+    return <div className="flex items-center justify-center w-screen h-screen bg-surface-950 text-white">Loading...</div>;
   }
 
   if (!isAuthenticated) {
