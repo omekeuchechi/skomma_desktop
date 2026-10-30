@@ -6,6 +6,7 @@ import { useAuthStore } from '@stores/authStore';
 import { loadWorldSounds } from '@world/audio/audioLoader';
 import { PlotManager } from '@world/building/plotManager';
 import PassportWithMode from '@components/PassportWithMode';
+import MiniMap from '@components/MiniMap';
 
 const PASSPORT_SIZE = 100;
 
@@ -20,13 +21,15 @@ export default function World2D() {
   const outdoorPosition = useWorldPositionStore((s) => s.outdoorPosition);
   const user = useAuthStore((s) => s.user);
 
-  const [passportPosition, setPassportPosition] = useState({ x: 0, y: 0 });
+  const [passportPosition, setPassportPosition] = useState({ x: 2000, y: 2000 });
   const [cameraPosition, setCameraPosition] = useState({ x: 0, y: 0 });
+  const [plotPositions, setPlotPositions] = useState<Array<{ x: number; y: number; width: number; height: number }>>([]);
   const [isLoading, setIsLoading] = useState(false);
   const setIsLoadingRef = useRef(setIsLoading);
   const gameRef = useRef<Phaser.Game | null>(null);
   const gameInitializedRef = useRef(false);
-  const initialPositionRef = useRef({ x: 0, y: 0 });
+  const initialPositionRef = useRef({ x: 2000, y: 2000 });
+  const plotManagerRef = useRef<any>(null);
 
   // Keep setIsLoading ref fresh
   useEffect(() => {
@@ -49,8 +52,17 @@ export default function World2D() {
       setCameraPosition({ x: detail.cameraX, y: detail.cameraY });
     };
 
+    const handlePlotPositionsUpdate = (event: Event) => {
+      const { detail } = event as CustomEvent<Array<{ x: number; y: number; width: number; height: number }>>;
+      setPlotPositions(detail);
+    };
+
     window.addEventListener('passportPositionUpdate', handlePositionUpdate);
-    return () => window.removeEventListener('passportPositionUpdate', handlePositionUpdate);
+    window.addEventListener('plotPositionsUpdate', handlePlotPositionsUpdate);
+    return () => {
+      window.removeEventListener('passportPositionUpdate', handlePositionUpdate);
+      window.removeEventListener('plotPositionsUpdate', handlePlotPositionsUpdate);
+    };
   }, []);
 
   useEffect(() => {
@@ -163,6 +175,17 @@ export default function World2D() {
             }
           );
           plotManager.create();
+
+          // Store plot manager reference for mini-map
+          plotManagerRef.current = plotManager;
+
+          // Broadcast plot positions to React
+          const plotPositions = plotManager.getPlotPositions();
+          window.dispatchEvent(
+            new CustomEvent('plotPositionsUpdate', {
+              detail: plotPositions,
+            })
+          );
 
           // --- Movement config ---
           const speed = 20;
@@ -297,6 +320,13 @@ export default function World2D() {
           displayName={user?.displayName || user?.username}
         />
       </div>
+
+      {/* Mini-Map */}
+      <MiniMap
+        playerPosition={passportPosition}
+        plotPositions={plotPositions}
+        worldBounds={{ minX: -100000, maxX: 100000, minY: -100000, maxY: 100000 }}
+      />
 
       {isLoading && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">

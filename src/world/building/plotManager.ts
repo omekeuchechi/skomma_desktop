@@ -4,6 +4,32 @@ import { createPlot } from '@world_one/terrain/plot_1/scripts/plots_scripts/plot
 import { createPlotDoors, getBuildingExitPosition } from '@world_one/terrain/plot_1/scripts/plots_scripts/doors';
 import { checkDoorCollision } from '@world_one/terrain/plot_1/scripts/services/doorService';
 import { allPlotConfigs } from '@world_one/terrain/plots/plots.config';
+import { PlotConfig } from '@world_one/terrain/plot_1/scripts/types/index';
+import { loadPlot2Assets } from '@world_one/terrain/plot_2/config';
+import { loadPlot3Assets } from '@world_one/terrain/plot_3/config';
+import { loadPlot4Assets } from '@world_one/terrain/plot_4/config';
+import { loadPlot5Assets } from '@world_one/terrain/plot_5/config';
+import { loadPlot6Assets } from '@world_one/terrain/plot_6/config';
+import { loadPlot7Assets } from '@world_one/terrain/plot_7/config';
+import { loadPlot8Assets } from '@world_one/terrain/plot_8/config';
+import { loadPlot9Assets } from '@world_one/terrain/plot_9/config';
+import { loadPlot10Assets } from '@world_one/terrain/plot_10/config';
+import { loadPlot11Assets } from '@world_one/terrain/plot_11/config';
+
+/**
+ * All plot configurations including plot 1
+ */
+const allConfigsIncludingPlot1: PlotConfig[] = [
+  plot_1Config,
+  ...allPlotConfigs,
+];
+
+export interface PlotPosition {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
 
 export interface PlotManagerCallbacks {
   onDoorEnter: (sceneName: string) => void;
@@ -39,6 +65,16 @@ export class PlotManager {
    */
   public static preloadAssets(scene: Phaser.Scene): void {
     loadPlot1Assets(scene);
+    loadPlot2Assets(scene);
+    loadPlot3Assets(scene);
+    loadPlot4Assets(scene);
+    loadPlot5Assets(scene);
+    loadPlot6Assets(scene);
+    loadPlot7Assets(scene);
+    loadPlot8Assets(scene);
+    loadPlot9Assets(scene);
+    loadPlot10Assets(scene);
+    loadPlot11Assets(scene);
 
     // Load plot_1 sounds
     scene.load.audio('opening_door', '/world_one/terrain/plot_1/assets/sounds/opening_door.mp3');
@@ -49,23 +85,19 @@ export class PlotManager {
    * Create plot and initialize buildings
    */
   public create(): void {
-    console.log('Creating plots...');
-
     // --- Plot 1 with buildings ---
     const plot1 = createPlot(this.scene, plot_1Config);
     plot1.setDepth(10);
     this.plots.push(plot1);
-    console.log('Plot 1 created at:', plot_1Config.position);
 
     // Store building roofs for collision detection from plot 1
     this.collectBuildingRoofs(plot1);
 
     // --- Doors from plot 1 ---
     this.doors = createPlotDoors(this.scene, plot_1Config);
-    console.log('Plot 1 doors created:', this.doors.length);
 
-    // --- Create additional empty plots (2-11) ---
-    allPlotConfigs.forEach((config, index) => {
+    // --- Create additional plots (2-11) ---
+    allPlotConfigs.forEach((config: PlotConfig) => {
       const plot = createPlot(this.scene, config);
       plot.setDepth(10);
 
@@ -81,11 +113,15 @@ export class PlotManager {
       ground.setDepth(0);
       plot.add(ground);
 
-      this.plots.push(plot);
-      console.log(`Plot ${index + 2} created at:`, config.position);
-    });
+      // Store building roofs for collision detection
+      this.collectBuildingRoofs(plot);
 
-    console.log('Total plots created:', this.plots.length);
+      // Create doors for this plot
+      const plotDoors = createPlotDoors(this.scene, config);
+      this.doors.push(...plotDoors);
+
+      this.plots.push(plot);
+    });
   }
 
   /**
@@ -168,9 +204,16 @@ export class PlotManager {
       checkDoorCollision(this.passport, overlappingDoor, this.scene, (sceneName: string) => {
         this.callbacks.onLoadingStart();
 
-        const exitPosition = getBuildingExitPosition(plot_1Config, sceneName);
-        if (exitPosition) {
-          this.callbacks.onPositionUpdate(exitPosition.x, exitPosition.y);
+        // Find the plot config that contains this scene name
+        const config = allConfigsIncludingPlot1.find((plotConfig) =>
+          plotConfig.buildingRoofs.some((roof) => roof.sceneName === sceneName)
+        );
+
+        if (config) {
+          const exitPosition = getBuildingExitPosition(config, sceneName);
+          if (exitPosition) {
+            this.callbacks.onPositionUpdate(exitPosition.x, exitPosition.y);
+          }
         }
 
         this.callbacks.onDoorEnter(sceneName);
@@ -178,6 +221,18 @@ export class PlotManager {
     } else if (!overlappingDoor) {
       this.activeDoor = null;
     }
+  }
+
+  /**
+   * Get all plot positions for mini-map
+   */
+  public getPlotPositions(): PlotPosition[] {
+    return allConfigsIncludingPlot1.map((config) => ({
+      x: config.position.x,
+      y: config.position.y,
+      width: config.width,
+      height: config.height,
+    }));
   }
 
   /**

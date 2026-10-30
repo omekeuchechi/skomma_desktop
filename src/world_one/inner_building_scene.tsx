@@ -8,84 +8,43 @@ import { useWorldPositionStore } from '@stores/worldPositionStore';
 import { useAuthStore } from '@stores/authStore';
 import PassportWithMode from '@components/PassportWithMode';
 
-// Define building scenes configuration
+// Import indoor scene configurations from each plot
+import {
+  duplexIndoorConfig,
+  duplexIndoor2Config,
+  smallBuildingIndoor1Config,
+  smallBuildingIndoor2Config,
+} from '@world_one/terrain/plot_1/indoor.config';
+import { plot2DuplexIndoorConfig } from '@world_one/terrain/plot_2/indoor.config';
+import { plot3Duplex1Config } from '@world_one/terrain/plot_3/indoor.config';
+import { plot4Small1Config } from '@world_one/terrain/plot_4/indoor.config';
+import { plot5Duplex1Config } from '@world_one/terrain/plot_5/indoor.config';
+import { plot6Small1Config } from '@world_one/terrain/plot_6/indoor.config';
+import { plot7Duplex1Config, plot7Small1Config } from '@world_one/terrain/plot_7/indoor.config';
+import { plot8Duplex1Config } from '@world_one/terrain/plot_8/indoor.config';
+import { plot9Small1Config, plot9Small2Config } from '@world_one/terrain/plot_9/indoor.config';
+import { plot10Duplex1Config } from '@world_one/terrain/plot_10/indoor.config';
+import { plot11Duplex1Config, plot11Small1Config } from '@world_one/terrain/plot_11/indoor.config';
+
+// Combine all building scene configurations
 const buildingScenes: Record<string, BuildingSceneConfig> = {
-  duplex_indoor: {
-    sceneName: 'duplex_indoor',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    floorTexture: 'tiles',
-    objects: [
-      {
-        image: 'table',
-        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-        width: 200,
-        height: 120,
-        collision: true
-      }
-    ],
-    background: '#ffffff',
-    exitDoor: {
-      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-      width: 150,
-      height: 20
-    }
-  },
-  duplex_indoor2: {
-    sceneName: 'duplex_indoor2',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    floorTexture: '',
-    objects: [],
-    background: '#ffffff',
-    exitDoor: {
-      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-      width: 150,
-      height: 20
-    }
-  },
-  small_building_indoor1: {
-    sceneName: 'small_building_indoor1',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    floorTexture: 'tiles',
-    objects: [
-      {
-        image: 'table',
-        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-        width: 200,
-        height: 120,
-        collision: true
-      }
-    ],
-    background: '#ffffff',
-    exitDoor: {
-      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-      width: 150,
-      height: 20
-    }
-  },
-  small_building_indoor2: {
-    sceneName: 'small_building_indoor2',
-    width: window.innerWidth,
-    height: window.innerHeight,
-    floorTexture: 'tiles',
-    objects: [
-      {
-        image: 'table',
-        position: { x: window.innerWidth / 2, y: window.innerHeight / 2 },
-        width: 200,
-        height: 120,
-        collision: true
-      }
-    ],
-    background: '#ffffff',
-    exitDoor: {
-      position: { x: window.innerWidth - 75, y: window.innerHeight / 2 },
-      width: 150,
-      height: 20
-    }
-  },
+  [duplexIndoorConfig.sceneName]: duplexIndoorConfig,
+  [duplexIndoor2Config.sceneName]: duplexIndoor2Config,
+  [smallBuildingIndoor1Config.sceneName]: smallBuildingIndoor1Config,
+  [smallBuildingIndoor2Config.sceneName]: smallBuildingIndoor2Config,
+  [plot2DuplexIndoorConfig.sceneName]: plot2DuplexIndoorConfig,
+  [plot3Duplex1Config.sceneName]: plot3Duplex1Config,
+  [plot4Small1Config.sceneName]: plot4Small1Config,
+  [plot5Duplex1Config.sceneName]: plot5Duplex1Config,
+  [plot6Small1Config.sceneName]: plot6Small1Config,
+  [plot7Duplex1Config.sceneName]: plot7Duplex1Config,
+  [plot7Small1Config.sceneName]: plot7Small1Config,
+  [plot8Duplex1Config.sceneName]: plot8Duplex1Config,
+  [plot9Small1Config.sceneName]: plot9Small1Config,
+  [plot9Small2Config.sceneName]: plot9Small2Config,
+  [plot10Duplex1Config.sceneName]: plot10Duplex1Config,
+  [plot11Duplex1Config.sceneName]: plot11Duplex1Config,
+  [plot11Small1Config.sceneName]: plot11Small1Config,
 };
 
 export default function InnerBuildingScene() {
@@ -137,8 +96,12 @@ export default function InnerBuildingScene() {
       },
       scene: {
         preload: function(this: Phaser.Scene) {
-          this.load.image('tiles', '/src/world_one/terrain/plot_1/assets/imgs/tiles.jpeg');
-          this.load.image('table', '/src/world_one/terrain/plot_1/assets/imgs/table.png');
+          // Load plot_1 assets
+          this.load.image('tiles', '/world_one/terrain/plot_1/assets/imgs/tiles.jpeg');
+          this.load.image('table', '/world_one/terrain/plot_1/assets/imgs/table.png');
+          // Load plot_2 assets (using different keys)
+          this.load.image('plot_2_tiles', '/world_one/terrain/plot_2/assets/imgs/tiles.jpeg');
+          this.load.image('plot_2_table', '/world_one/terrain/plot_2/assets/imgs/table.png');
         },
         create: function(this: Phaser.Scene) {
           const indoorScene = createBuildingScene(this, config);
