@@ -18,7 +18,7 @@ export const useWorldPositionStore = create<WorldPositionState>()(
     (set) => ({
       currentScene: 'outdoor',
       indoorSceneName: null,
-      outdoorPosition: { x: 5000, y: 5000 },
+      outdoorPosition: { x: 0, y: 0 },
       doorPosition: null,
       setCurrentScene: (scene) => set({ currentScene: scene }),
       setIndoorSceneName: (name) => set({ indoorSceneName: name }),
@@ -27,7 +27,7 @@ export const useWorldPositionStore = create<WorldPositionState>()(
       resetToDefault: () => set({
         currentScene: 'outdoor',
         indoorSceneName: null,
-        outdoorPosition: { x: 5000, y: 5000 },
+        outdoorPosition: { x: -95000, y: -95000 },
         doorPosition: null
       })
     }),

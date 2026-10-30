@@ -4,15 +4,15 @@ import { PlotConfig } from '../types/index';
  * Plot 1 configuration
  */
 export const plot_1Config: PlotConfig = {
-  position: { x: 4500, y: 4500 },
-  width: 1500,
-  height: 1000,
+  position: { x: 500, y: 500 },
+  width: 95000,
+  height: 95000,
   shapes: [],
   shapesPositions: [],
   buildingRoofs: [
     {
       image: 'duplex_roof',
-      position: { x: 100, y: 200 },
+      position: { x: 200, y: 200 },
       width: 500,
       height: 400,
       hasDoor: true,
