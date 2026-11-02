@@ -16,7 +16,7 @@ import {
   smallBuildingIndoor2Config,
 } from '@world_one/terrain/plot_1/indoor.config';
 import { plot2DuplexIndoorConfig } from '@world_one/terrain/plot_2/indoor.config';
-import { plot3Duplex1Config } from '@world_one/terrain/plot_3/indoor.config';
+import { plot3Duplex1Config, plot3Duplex2Config } from '@world_one/terrain/plot_3/indoor.config';
 import { plot4Small1Config } from '@world_one/terrain/plot_4/indoor.config';
 import { plot5Duplex1Config } from '@world_one/terrain/plot_5/indoor.config';
 import { plot6Small1Config } from '@world_one/terrain/plot_6/indoor.config';
@@ -34,6 +34,7 @@ const buildingScenes: Record<string, BuildingSceneConfig> = {
   [smallBuildingIndoor2Config.sceneName]: smallBuildingIndoor2Config,
   [plot2DuplexIndoorConfig.sceneName]: plot2DuplexIndoorConfig,
   [plot3Duplex1Config.sceneName]: plot3Duplex1Config,
+  [plot3Duplex2Config.sceneName]: plot3Duplex2Config,
   [plot4Small1Config.sceneName]: plot4Small1Config,
   [plot5Duplex1Config.sceneName]: plot5Duplex1Config,
   [plot6Small1Config.sceneName]: plot6Small1Config,
