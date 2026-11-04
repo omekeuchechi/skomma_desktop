@@ -4,23 +4,18 @@ import { PlotConfig } from '../plot_1/scripts/types/index';
  * Plot 3 configuration
  */
 export const plot_3Config: PlotConfig = {
-  position: { x: -97500, y: -96900 },
-  width: 1200,
-  height: 900,
-  shapes: [
-    {
-      type: 'circle',
-      radius: 500,
-      color: '#707070'
-    }
-  ],
-  shapesPositions: [
-    { x: 0, y: 0 }
-  ],
+  position: { x: -98590, y: -96900 },
+  width: 1500,
+  height: 1500,
+  groundShape: 'hexagon', // this have the following 'rectangle' | 'circle' | 'triangle' | 'ellipse' | 'star' | 'diamond' | 'hexagon' | 'custom'
+  groundRadius: 750,
+  groundColor: '#707070',
+  shapes: [],
+  shapesPositions: [],
   buildingRoofs: [
     {
       image: 'old_building_roof',
-      position: { x: 100, y: 100 },
+      position: { x: 20, y: -440 },
       width: 400,
       height: 300,
       hasDoor: true,
@@ -30,7 +25,7 @@ export const plot_3Config: PlotConfig = {
     },
     {
       image: 'npc_building_roof',
-      position: { x: 500, y: 100 },
+      position: { x: 20, y: 440 },
       width: 400,
       height: 300,
       hasDoor: true,
@@ -40,7 +35,40 @@ export const plot_3Config: PlotConfig = {
     }
   ],
   objCollision: [true, true],
-  objSounds: []
+  objSounds: [],
+  decorativeObjects: [
+    {
+      type: 'sign',
+      position: { x: 300, y: 0 },
+      width: 120,
+      height: 80,
+      color: '#ffffff',
+      text: 'Welcome',
+      fontSize: 18,
+      hasCollision: false
+    },
+    {
+      type: 'fountain',
+      position: { x: 20, y: 0 },
+      radius: 40,
+      size: 1.3,
+      hasCollision: true
+    },
+    {
+      type: 'tree',
+      position: { x: 400, y: -200 },
+      radius: 35,
+      hasCollision: true
+    },
+    {
+      type: 'bench',
+      position: { x: -200, y: -300 },
+      width: 60,
+      height: 20,
+      color: '#8d6e63',
+      hasCollision: true
+    }
+  ]
 };
 
 /**

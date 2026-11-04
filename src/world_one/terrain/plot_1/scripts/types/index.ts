@@ -8,12 +8,14 @@ export interface Position {
 }
 
 export interface Shape {
-  type: 'rectangle' | 'circle' | 'custom';
+  type: 'rectangle' | 'circle' | 'triangle' | 'ellipse' | 'star' | 'diamond' | 'hexagon' | 'custom';
   width?: number;
   height?: number;
   radius?: number;
   color: string;
   texture?: string;
+  points?: number; // For star (number of points) or polygon
+  innerRadius?: number; // For star (inner radius)
 }
 
 export interface BuildingRoof {
@@ -39,11 +41,15 @@ export interface PlotConfig {
   position: Position;
   width: number;
   height: number;
+  groundShape?: 'rectangle' | 'circle' | 'triangle' | 'ellipse' | 'star' | 'diamond' | 'hexagon';
+  groundRadius?: number;
+  groundColor?: string;
   shapes: Shape[];
   shapesPositions: Position[];
   buildingRoofs: BuildingRoof[];
   objCollision: boolean[];
   objSounds: SoundConfig[];
+  decorativeObjects?: DecorativeObject[];
 }
 
 export interface Door {
@@ -74,4 +80,20 @@ export interface BuildingSceneConfig {
     width: number;
     height: number;
   };
+}
+
+export interface DecorativeObject {
+  type: 'sign' | 'chair' | 'fountain' | 'tree' | 'bench' | 'lamp' | 'waterfall' | 'statue' | 'custom';
+  position: Position;
+  width?: number;
+  height?: number;
+  radius?: number;
+  size?: number; // For fountain overall scale
+  color?: string;
+  texture?: string;
+  rotation?: number;
+  hasCollision?: boolean;
+  text?: string; // For signs
+  font?: string;
+  fontSize?: number;
 }

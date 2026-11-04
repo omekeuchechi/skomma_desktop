@@ -101,17 +101,19 @@ export class PlotManager {
       const plot = createPlot(this.scene, config);
       plot.setDepth(10);
 
-      // Add a visible ground rectangle for empty plots
-      const ground = this.scene.add.rectangle(
-        config.position.x,
-        config.position.y,
-        config.width,
-        config.height,
-        0x707070 // Gray color for plot ground
-      );
-      ground.setOrigin(0.5, 0.5);
-      ground.setDepth(0);
-      plot.add(ground);
+      // Only add default ground if plot doesn't have a custom groundShape
+      if (!config.groundShape) {
+        const ground = this.scene.add.rectangle(
+          config.position.x,
+          config.position.y,
+          config.width,
+          config.height,
+          0x707070 // Gray color for plot ground
+        );
+        ground.setOrigin(0.5, 0.5);
+        ground.setDepth(0);
+        plot.add(ground);
+      }
 
       // Store building roofs for collision detection
       this.collectBuildingRoofs(plot);
