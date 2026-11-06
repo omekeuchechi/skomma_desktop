@@ -370,8 +370,16 @@ function createDecorativeObject(
           signContainer.add(textObj);
         }
 
+        // Add invisible collision rectangle
+        if (hasCollision) {
+          const collisionRect = scene.add.rectangle(0, 0, signWidth, signHeight + legHeight, 0x000000, 0);
+          collisionRect.setOrigin(0.5, 0.5);
+          collisionRect.setData('hasCollision', true);
+          collisionRect.setData('objectType', 'sign');
+          signContainer.add(collisionRect);
+        }
+
         if (rotation) signContainer.setRotation(rotation);
-        if (hasCollision) signContainer.setData('hasCollision', true);
         return signContainer;
       }
 
@@ -570,7 +578,17 @@ function createDecorativeObject(
         });
 
         if (rotation) fountainContainer.setRotation(rotation);
-        if (hasCollision) fountainContainer.setData('hasCollision', true);
+
+        // Add invisible collision rectangle
+        if (hasCollision) {
+          const collisionRect = scene.add.rectangle(0, 0, fountainRadius * 2, fountainRadius * 2, 0x000000, 0);
+          collisionRect.setOrigin(0.5, 0.5);
+          collisionRect.setData('hasCollision', true);
+          collisionRect.setData('objectType', 'fountain');
+          fountainContainer.add(collisionRect);
+        }
+
+        fountainContainer.setData('objectType', 'fountain');
         return fountainContainer;
       }
 
@@ -586,50 +604,62 @@ function createDecorativeObject(
         if (hasCollision) tree.setData('hasCollision', true);
         return tree;
       } else {
-        const treeGraphics = scene.add.graphics();
         const treeRadius = radius || 30;
         const trunkWidth = 12;
         const trunkHeight = 30;
+        const treeContainer = scene.add.container(position.x, position.y);
+
+        const treeGraphics = scene.add.graphics();
 
         // Trunk (wider at bottom)
         treeGraphics.fillStyle(0x5d4037, 1);
         treeGraphics.beginPath();
-        treeGraphics.moveTo(position.x - trunkWidth / 2, position.y + trunkHeight);
-        treeGraphics.lineTo(position.x + trunkWidth / 2, position.y + trunkHeight);
-        treeGraphics.lineTo(position.x + trunkWidth / 3, position.y);
-        treeGraphics.lineTo(position.x - trunkWidth / 3, position.y);
+        treeGraphics.moveTo(-trunkWidth / 2, trunkHeight);
+        treeGraphics.lineTo(trunkWidth / 2, trunkHeight);
+        treeGraphics.lineTo(trunkWidth / 3, 0);
+        treeGraphics.lineTo(-trunkWidth / 3, 0);
         treeGraphics.closePath();
         treeGraphics.fillPath();
 
         // Trunk texture lines
         treeGraphics.lineStyle(1, 0x3e2723, 0.5);
         treeGraphics.beginPath();
-        treeGraphics.moveTo(position.x - 2, position.y + 5);
-        treeGraphics.lineTo(position.x - 2, position.y + trunkHeight - 5);
-        treeGraphics.moveTo(position.x + 2, position.y + 5);
-        treeGraphics.lineTo(position.x + 2, position.y + trunkHeight - 5);
+        treeGraphics.moveTo(-2, 5);
+        treeGraphics.lineTo(-2, trunkHeight - 5);
+        treeGraphics.moveTo(2, 5);
+        treeGraphics.lineTo(2, trunkHeight - 5);
         treeGraphics.strokePath();
 
         // Foliage - multiple layers for depth
         // Bottom layer (largest, darker green)
         treeGraphics.fillStyle(0x2e7d32, 1);
-        treeGraphics.fillCircle(position.x, position.y - 5, treeRadius * 0.9);
+        treeGraphics.fillCircle(0, -5, treeRadius * 0.9);
 
         // Middle layer (medium green)
         treeGraphics.fillStyle(0x388e3c, 1);
-        treeGraphics.fillCircle(position.x, position.y - 12, treeRadius * 0.8);
+        treeGraphics.fillCircle(0, -12, treeRadius * 0.8);
 
         // Top layer (lighter green, smaller)
         treeGraphics.fillStyle(0x43a047, 1);
-        treeGraphics.fillCircle(position.x, position.y - 20, treeRadius * 0.6);
+        treeGraphics.fillCircle(0, -20, treeRadius * 0.6);
 
         // Highlight on top
         treeGraphics.fillStyle(0x66bb6a, 0.3);
-        treeGraphics.fillCircle(position.x - treeRadius * 0.2, position.y - 25, treeRadius * 0.2);
+        treeGraphics.fillCircle(-treeRadius * 0.2, -25, treeRadius * 0.2);
 
-        if (rotation) treeGraphics.setRotation(rotation);
-        if (hasCollision) treeGraphics.setData('hasCollision', true);
-        return treeGraphics;
+        treeContainer.add(treeGraphics);
+
+        // Add invisible collision rectangle
+        if (hasCollision) {
+          const collisionRect = scene.add.rectangle(0, 0, treeRadius * 1.5, treeRadius * 1.5, 0x000000, 0);
+          collisionRect.setOrigin(0.5, 0.5);
+          collisionRect.setData('hasCollision', true);
+          collisionRect.setData('objectType', 'tree');
+          treeContainer.add(collisionRect);
+        }
+
+        if (rotation) treeContainer.setRotation(rotation);
+        return treeContainer;
       }
 
     case 'bench':
@@ -644,17 +674,30 @@ function createDecorativeObject(
         if (hasCollision) bench.setData('hasCollision', true);
         return bench;
       } else {
-        const benchGraphics = scene.add.graphics();
         const benchWidth = width || 80;
         const benchHeight = height || 20;
+        const benchContainer = scene.add.container(position.x, position.y);
+
+        const benchGraphics = scene.add.graphics();
         benchGraphics.fillStyle(colorValue, 1);
-        benchGraphics.fillRect(position.x - benchWidth / 2, position.y - benchHeight / 2, benchWidth, benchHeight);
+        benchGraphics.fillRect(-benchWidth / 2, -benchHeight / 2, benchWidth, benchHeight);
         // Legs
-        benchGraphics.fillRect(position.x - benchWidth / 2, position.y + benchHeight / 2, 5, 10);
-        benchGraphics.fillRect(position.x + benchWidth / 2 - 5, position.y + benchHeight / 2, 5, 10);
-        if (rotation) benchGraphics.setRotation(rotation);
-        if (hasCollision) benchGraphics.setData('hasCollision', true);
-        return benchGraphics;
+        benchGraphics.fillRect(-benchWidth / 2, benchHeight / 2, 5, 10);
+        benchGraphics.fillRect(benchWidth / 2 - 5, benchHeight / 2, 5, 10);
+
+        benchContainer.add(benchGraphics);
+
+        // Add invisible collision rectangle
+        if (hasCollision) {
+          const collisionRect = scene.add.rectangle(0, 0, benchWidth, benchHeight + 10, 0x000000, 0);
+          collisionRect.setOrigin(0.5, 0.5);
+          collisionRect.setData('hasCollision', true);
+          collisionRect.setData('objectType', 'bench');
+          benchContainer.add(collisionRect);
+        }
+
+        if (rotation) benchContainer.setRotation(rotation);
+        return benchContainer;
       }
 
     case 'lamp':

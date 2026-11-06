@@ -42,11 +42,16 @@ export class PlotManager {
   private plots: Phaser.GameObjects.Container[] = [];
   private doors: Phaser.GameObjects.Rectangle[] = [];
   private buildingRoofs: (Phaser.GameObjects.Image | Phaser.GameObjects.Rectangle)[] = [];
+  private decorativeObjects: Phaser.GameObjects.GameObject[] = [];
+  private fountainObjects: Phaser.GameObjects.GameObject[] = [];
   private activeDoor: Phaser.GameObjects.Rectangle | null = null;
   private wasRoofCollision = false;
   private passport: Phaser.GameObjects.Container;
   private passportSize: number;
   private callbacks: PlotManagerCallbacks;
+  private waterfallSound?: any;
+  private lastCollisionTime: number = 0;
+  private collisionCooldown: number = 500; // 500ms cooldown between collision sounds
 
   constructor(
     scene: Phaser.Scene,
@@ -79,6 +84,9 @@ export class PlotManager {
     // Load plot_1 sounds
     scene.load.audio('opening_door', '/world_one/terrain/plot_1/assets/sounds/opening_door.mp3');
     scene.load.audio('wall_hit', '/world_one/terrain/plot_1/assets/sounds/wall_hit.mp3');
+    // Load additional sounds
+    scene.load.audio('wood_hit', '/world_one/sounds/wood-hit.mp3');
+    scene.load.audio('waterfall', '/world_one/sounds/waterfall.mp3');
   }
 
   /**
@@ -133,11 +141,23 @@ export class PlotManager {
     plot.list.forEach((child: Phaser.GameObjects.GameObject) => {
       if (child instanceof Phaser.GameObjects.Container) {
         child.list.forEach((roofChild: Phaser.GameObjects.GameObject) => {
+          // Collect building roofs and invisible collision rectangles
           if (
             roofChild instanceof Phaser.GameObjects.Image ||
             roofChild instanceof Phaser.GameObjects.Rectangle
           ) {
-            this.buildingRoofs.push(roofChild);
+            // Check if this rectangle has collision data
+            if (roofChild.getData && roofChild.getData('hasCollision') === true) {
+              const objectType = roofChild.getData('objectType');
+              if (objectType === 'fountain') {
+                this.fountainObjects.push(roofChild);
+                this.decorativeObjects.push(roofChild); // Also add to decorative objects for collision blocking
+              } else {
+                this.decorativeObjects.push(roofChild);
+              }
+            } else {
+              this.buildingRoofs.push(roofChild);
+            }
           }
         });
       }
@@ -152,13 +172,15 @@ export class PlotManager {
    */
   public checkRoofCollision(newX: number, newY: number): boolean {
     let roofCollision = false;
+    const tempBounds = new Phaser.Geom.Rectangle(
+      newX - this.passportSize / 2,
+      newY - this.passportSize / 2,
+      this.passportSize,
+      this.passportSize
+    );
+
+    // Check building roof collisions
     if (this.buildingRoofs.length > 0) {
-      const tempBounds = new Phaser.Geom.Rectangle(
-        newX - this.passportSize / 2,
-        newY - this.passportSize / 2,
-        this.passportSize,
-        this.passportSize
-      );
       for (const roof of this.buildingRoofs) {
         if (
           Phaser.Geom.Intersects.RectangleToRectangle(tempBounds, roof.getBounds())
@@ -169,9 +191,30 @@ export class PlotManager {
       }
     }
 
+    // Check decorative object collisions
+    if (!roofCollision && this.decorativeObjects.length > 0) {
+      for (const obj of this.decorativeObjects) {
+        try {
+          if (
+            Phaser.Geom.Intersects.RectangleToRectangle(tempBounds, (obj as any).getBounds())
+          ) {
+            roofCollision = true;
+            break;
+          }
+        } catch (e) {
+          // Skip objects that don't have valid bounds
+          continue;
+        }
+      }
+    }
+
     if (roofCollision) {
       if (!this.wasRoofCollision) {
-        this.scene.sound.play('wall_hit', { volume: 0.3 });
+        const now = this.scene.time.now;
+        if (now - this.lastCollisionTime > this.collisionCooldown) {
+          this.scene.sound.play('wood_hit', { volume: 0.5 });
+          this.lastCollisionTime = now;
+        }
       }
       this.wasRoofCollision = true;
     } else {
@@ -179,6 +222,72 @@ export class PlotManager {
     }
 
     return roofCollision;
+  }
+
+  /**
+   * Update fountain proximity sound based on distance
+   * Call this in the update loop
+   */
+  public updateFountainSound(passportX: number, passportY: number): void {
+    if (this.fountainObjects.length === 0) return;
+
+    let closestDistance = Infinity;
+
+    // Find closest fountain (use center-to-center distance)
+    for (const fountain of this.fountainObjects) {
+      try {
+        const fountainBounds = (fountain as any).getBounds();
+        const fountainCenterX = fountainBounds.x + fountainBounds.width / 2;
+        const fountainCenterY = fountainBounds.y + fountainBounds.height / 2;
+        
+        const distance = Math.sqrt(
+          Math.pow(passportX - fountainCenterX, 2) +
+          Math.pow(passportY - fountainCenterY, 2)
+        );
+        
+        if (distance < closestDistance) {
+          closestDistance = distance;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    // Play or adjust waterfall sound based on distance
+    const maxDistance = 800; // Distance at which sound is inaudible
+    
+    if (closestDistance < maxDistance) {
+      // Calculate volume: 1.0 at distance 0, fades to 0.2 at maxDistance
+      // Increased to 1.0 for maximum volume when very close
+      const volume = Math.max(0.2, 1.0 - (closestDistance / maxDistance));
+      
+      if (!this.waterfallSound) {
+        try {
+          this.waterfallSound = this.scene.sound.play('waterfall', { volume, loop: true });
+        } catch (e) {
+          console.error('Failed to play waterfall sound:', e);
+        }
+      } else {
+        try {
+          if ((this.waterfallSound as any).setVolume) {
+            (this.waterfallSound as any).setVolume(volume);
+          }
+        } catch (e) {
+          console.error('Failed to set waterfall sound volume:', e);
+        }
+      }
+    } else {
+      // Mute the sound instead of stopping it (more reliable)
+      if (this.waterfallSound) {
+        try {
+          if ((this.waterfallSound as any).setVolume) {
+            (this.waterfallSound as any).setVolume(0);
+          }
+        } catch (e) {
+          console.error('Failed to mute waterfall sound:', e);
+        }
+      }
+    }
   }
 
   /**

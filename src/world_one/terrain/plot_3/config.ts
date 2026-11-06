@@ -39,33 +39,44 @@ export const plot_3Config: PlotConfig = {
   decorativeObjects: [
     {
       type: 'sign',
-      position: { x: 300, y: 0 },
-      width: 120,
-      height: 80,
+      position: { x: -500, y: 0 },
+      width: 300,
+      height: 200,
       color: '#ffffff',
-      text: 'Welcome',
+      text: 'Welcome To Skomma (S.P.C) 🙋‍♀️🌾',
       fontSize: 18,
-      hasCollision: false
+      rotation: 1.5708, // 90 degrees in radians, 3.14 180 degrees, -1.57 -90 degrees
+      hasCollision: true
     },
     {
       type: 'fountain',
       position: { x: 20, y: 0 },
       radius: 40,
       size: 1.3,
+      rotation: 0,
       hasCollision: true
     },
     {
       type: 'tree',
       position: { x: 400, y: -200 },
       radius: 35,
+      rotation: 0,
+      hasCollision: true
+    },
+    {
+      type: 'tree',
+      position: { x: 400, y: 200 },
+      radius: 35,
+      rotation: 0,
       hasCollision: true
     },
     {
       type: 'bench',
-      position: { x: -200, y: -300 },
-      width: 60,
-      height: 20,
+      position: { x: -220, y: -450 },
+      width: 200,
+      height: 50,
       color: '#8d6e63',
+      rotation: 1.5708, // 90 degrees in radians
       hasCollision: true
     }
   ]

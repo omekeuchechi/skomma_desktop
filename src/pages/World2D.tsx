@@ -265,6 +265,9 @@ export default function World2D() {
             // --- Door collision ---
             plotManager.checkDoorCollision();
 
+            // --- Fountain proximity sound ---
+            plotManager.updateFountainSound(passport.x, passport.y);
+
             // --- Target line ---
             if (targetX !== null && targetY !== null) {
               targetLine.clear();
